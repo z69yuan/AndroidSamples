@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.beancurdv.camera">
+    <uses-permission android:name="android.permission.A" />
+    <uses-permission android:name="android.permission.B" />
+    <uses-permission android:name="android.permission.C" />
+    <uses-permission android:name="android.permission.D" />
+   <application
+     android:name="BeancurdApp
+     ">
+      <activity
+        android:name=".MainActivity"
+      >
+         <intent-filter>
+           <action android:name="android.intent.action.Main" />
+           <category android:name="android.intent.category.LAUNCHER" />
+         </intent-filter>
+      </activity>
+   </application>
+</manifest>
