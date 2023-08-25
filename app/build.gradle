@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
+apply plugin: 'com.beancurdv.greeting'
+
 
 android {
     namespace 'com.beancurd.androidsamples'

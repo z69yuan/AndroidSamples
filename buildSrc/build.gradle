@@ -16,11 +16,7 @@ repositories {
 
 
 dependencies {
-
-    implementation gradleApi()
-    implementation localGroovy()
-//    implementation 'com.android.tools.build:gradle:3.2.1'
-//    implementation 'org.ow2.asm:asm-all:5.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20"
 }
 
 
