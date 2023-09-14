@@ -15,8 +15,12 @@ android {
         consumerProguardFiles("consumer-rules.pro")
         externalNativeBuild {
             cmake {
-                cppFlags("")
+                cppFlags("-std=c++11"," -fexceptions","-pthread")
+                cFlags("-DSTDC_HEADERS"/*,"-DHAVE_LIMITS_H","-DHAVE_MPGLIB"*/)
             }
+//            ndk {
+//                abiFilters.add("armeabi-v7a")
+//            }
         }
     }
 

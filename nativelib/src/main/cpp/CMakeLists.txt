@@ -1,48 +1,22 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html
-
-# Sets the minimum version of CMake required to build the native library.
-
 cmake_minimum_required(VERSION 3.22.1)
+project("lamemp3")
 
-# Declares and names the project.
+aux_source_directory(libmp3lame SRC_LIST) # 查找在某个路径下的所有源文件
 
-project("nativelib")
-
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
-
-add_library( # Sets the name of the library.
-        nativelib
-
-        # Sets the library as a shared library.
+add_library(
+        lamemp3
         SHARED
+        lamemp3_cpp.cpp ${SRC_LIST})
 
-        # Provides a relative path to your source file(s).
-        nativelib.cpp)
-
-# Searches for a specified prebuilt library and stores the path as a
-# variable. Because CMake includes system libraries in the search path by
-# default, you only need to specify the name of the public NDK library
-# you want to add. CMake verifies that the library exists before
-# completing its build.
-
-find_library( # Sets the name of the path variable.
+find_library(
         log-lib
-
-        # Specifies the name of the NDK library that
-        # you want CMake to locate.
         log)
-
-# Specifies libraries CMake should link to your target library. You
-# can link multiple libraries, such as libraries you define in this
-# build script, prebuilt third-party libraries, or system libraries.
-
-target_link_libraries( # Specifies the target library.
-        nativelib
-
-        # Links the target library to the log library
-        # included in the NDK.
+target_link_libraries(
+        lamemp3
         ${log-lib})
+
+
+#cmake_minimum_required(VERSION 3.6) # 指定CMake的最低要求版本号
+#set(target lamemp3) # 设置环境变量的名称（target）及其取值（lamemp3）
+#project(${target}) # 指定项目的名称
+#add_library(${target} SHARED lame-lib.cpp ${SRC_LIST}) # 生成动态库（共享库）
