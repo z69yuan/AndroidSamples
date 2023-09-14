@@ -1,11 +1,13 @@
 package com.beancurd.androidsamples
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -21,6 +23,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -49,10 +52,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         mBtnPlay.setOnClickListener {
-            outputFile?:return@setOnClickListener
-
+            if(outputFile == null) {
+                Toast.makeText(this,"请先录制声音",Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             startPlaying()
         }
+    }
+
+    fun openFolder(folderPath: String) {
+        val file = File(folderPath)
+        if (!file.exists() || !file.isDirectory) {
+            // 文件夹不存在 或者 也不是一个目录， 都直接返回
+            return
+        }
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        val uri = Uri.parse(folderPath)
+        intent.setDataAndType(uri, "*/*")
+        startActivity(Intent.createChooser(intent, "Open folder"))
     }
 
     private fun startRecord() {
@@ -64,7 +81,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var audioRecord: AudioRecord? = null
-    private lateinit var outputFile: File
+    private var outputFile: File? = null
     private var isRecording = false
     private val bufferSize: Int = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
     private val buffer = ByteArray(bufferSize)
@@ -83,7 +100,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         outputFile = File(getExternalFilesDir("sgjk"), "recorded_audio.pcm")
-        mTvPath.text = outputFile.absolutePath
+        mTvPath.text = outputFile!!.absolutePath
         if (ActivityCompat.checkSelfPermission(
                 this,
                 android.Manifest.permission.RECORD_AUDIO
@@ -130,7 +147,7 @@ class MainActivity : AppCompatActivity() {
         audioRecord?.release()
         audioRecord = null
 
-        val r = PcmToMp3.convertAudioFiles(outputFile.absolutePath,
+        val r = PcmToMp3.convertAudioFiles(outputFile!!.absolutePath,
             File(getExternalFilesDir("sgjk"), "recorded_audio.mp3").absolutePath)
         if(r.equals("ok")) {
             Toast.makeText(this,
