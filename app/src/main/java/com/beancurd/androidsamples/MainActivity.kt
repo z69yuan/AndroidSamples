@@ -7,14 +7,15 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.beancurd.androidsamples.util.PcmToMp3
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -128,6 +129,15 @@ class MainActivity : AppCompatActivity() {
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null
+
+        val r = PcmToMp3.convertAudioFiles(outputFile.absolutePath,
+            File(getExternalFilesDir("sgjk"), "recorded_audio.mp3").absolutePath)
+        if(r.equals("ok")) {
+            Toast.makeText(this,
+                "保存成功",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     override fun onStop() {
