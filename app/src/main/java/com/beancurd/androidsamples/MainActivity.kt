@@ -18,11 +18,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.beancurd.androidsamples.util.PcmToMp3
+import com.beancurdv.nativelib.LameUtil
+import com.beancurdv.nativelib.Mp3Decoder
+import com.beancurdv.nativelib.PcmInfo
+import com.beancurdv.nativelib.PcmToMp3Handler
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Arrays
+
+
+const val CONFIG_CHANNEL = AudioFormat.CHANNEL_IN_MONO
+const val CONFIG_SAMPLE_RATE = 16000
+const val CONFIG_BIT_DEEP = AudioFormat.ENCODING_PCM_16BIT
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -30,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mBtnRecord: Button
     private lateinit var mBtnPlay: Button
     private lateinit var mTvPath: TextView
+    private lateinit var mLameIntro: TextView
+    private lateinit var mPcmToMp3Handler: PcmToMp3Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +52,8 @@ class MainActivity : AppCompatActivity() {
         mTvPath = findViewById<TextView>(R.id.tv_path)
         mBtnRecord.text = "开始录音"
         mBtnPlay = findViewById<Button>(R.id.btn_play)
+        mLameIntro = findViewById<TextView>(R.id.tv_lame_intro)
+        mLameIntro.text = "lame version : ${LameUtil.version()}"
         initListener()
     }
 
@@ -83,8 +98,9 @@ class MainActivity : AppCompatActivity() {
     private var audioRecord: AudioRecord? = null
     private var outputFile: File? = null
     private var isRecording = false
-    private val bufferSize: Int = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-    private val buffer = ByteArray(bufferSize)
+    private val bufferSize: Int = AudioRecord.getMinBufferSize(CONFIG_SAMPLE_RATE, CONFIG_CHANNEL, CONFIG_BIT_DEEP)
+//    private val buffer = ByteArray(bufferSize)
+    private val buffer = ShortArray(bufferSize)
 
     private fun startRecording() {
 //        outputFile = File(Environment.getExternalStorageDirectory().absolutePath + "/recorded_audio.mp3")
@@ -111,11 +127,15 @@ class MainActivity : AppCompatActivity() {
 //        MediaRecorder.OutputFormat.
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.MIC,
-            16000,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
+            CONFIG_SAMPLE_RATE,
+            CONFIG_CHANNEL,
+            CONFIG_BIT_DEEP,
             bufferSize
         )
+//        audioRecord?.setPositionNotificationPeriod()
+
+        initMp3Encoder()
+
 
         audioRecord?.startRecording()
         isRecording = true
@@ -125,7 +145,10 @@ class MainActivity : AppCompatActivity() {
                 val os = FileOutputStream(outputFile)
                 while (isRecording) {
                     val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
-                    os.write(buffer,0,read)
+//                    os.write(buffer,0,read)
+                    // 将buffer的数据拷贝到newBuffer中
+                    val newBuffer = buffer.copyOf(read)
+                    mPcmToMp3Handler.sendMsg(newBuffer)
 //                    for (i in 0 until read) {
 //                        os.write((buffer[i].toInt() shr 8).toByte().toInt())
 //                        os.write((buffer[i].toInt() and 0xff.toShort().toInt()).toByte().toInt())
@@ -154,6 +177,23 @@ class MainActivity : AppCompatActivity() {
                 "保存成功",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    private fun initMp3Encoder() {
+        val threadDecoder = Mp3Decoder()
+        threadDecoder.start()
+        mPcmToMp3Handler = PcmToMp3Handler(threadDecoder.looper).apply {
+            initConfig(
+                PcmInfo(
+                   CONFIG_SAMPLE_RATE,
+                   CONFIG_CHANNEL,
+                    CONFIG_SAMPLE_RATE,
+                    11,
+                    2
+                ),
+                File(getExternalFilesDir("sgjk"), "recorded_audio_new.mp3")
+            )
         }
     }
 

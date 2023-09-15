@@ -32,6 +32,7 @@ Java_com_beancurdv_nativelib_LameUtil_init(JNIEnv *env, jclass clazz, jint in_sa
     lame_set_out_samplerate(glf, out_sample_rate);
     lame_set_brate(glf, out_bitrate);
     lame_set_quality(glf, quality);
+    lame_set_mode(glf, MONO);
     lame_init_params(glf);
 }
 extern "C"
@@ -44,7 +45,7 @@ Java_com_beancurdv_nativelib_LameUtil_encode(JNIEnv *env, jclass clazz, jshortAr
     jbyte *mp3buf = env->GetByteArrayElements(mp3buf_, NULL);
 
     const jsize mp3buff_size = env->GetArrayLength(mp3buf_);
-    int result = lame_encode_buffer(glf, buffer_l, buffer_r, samples, (u_char *) mp3buf,
+    int result = lame_encode_buffer(glf, buffer_l, nullptr, samples, (u_char *) mp3buf,
                                     mp3buff_size);
 
     env->ReleaseShortArrayElements(buffer_l_, buffer_l, 0);
