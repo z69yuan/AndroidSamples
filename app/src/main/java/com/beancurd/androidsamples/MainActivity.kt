@@ -18,16 +18,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.beancurd.androidsamples.util.PcmToMp3
-import com.beancurdv.nativelib.LameUtil
+import com.beancurd.androidsamples.util.ReflectionUtil
+import com.beancurd.androidsamples.util.executeShellCommand
 import com.beancurdv.nativelib.Mp3Decoder
 import com.beancurdv.nativelib.PcmInfo
 import com.beancurdv.nativelib.PcmToMp3Handler
+import java.io.BufferedReader
+import java.io.DataOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.Arrays
+import java.io.InputStreamReader
+import java.net.Socket
+import java.net.URL
+import kotlin.system.exitProcess
 
 
 const val CONFIG_CHANNEL = AudioFormat.CHANNEL_IN_MONO
@@ -44,34 +50,161 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mLameIntro: TextView
     private lateinit var mPcmToMp3Handler: PcmToMp3Handler
 
+    private var isFinish = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        Log.e("dirk","onCreate~~~~")
+
+        val apkRoot = "chmod 777 $packageCodePath"
+        rootCommand(apkRoot)
+
         mBtnRecord = findViewById<Button>(R.id.btn_record)
-        mTvPath = findViewById<TextView>(R.id.tv_path)
-        mBtnRecord.text = "开始录音"
+//        mTvPath = findViewById<TextView>(R.id.tv_path)
+//        mBtnRecord.text = "开始录音"
         mBtnPlay = findViewById<Button>(R.id.btn_play)
-        mLameIntro = findViewById<TextView>(R.id.tv_lame_intro)
-        mLameIntro.text = "lame version : ${LameUtil.version()}"
+//        mLameIntro = findViewById<TextView>(R.id.tv_lame_intro)
+//        mLameIntro.text = "lame version : ${LameUtil.version()}"
         initListener()
+
+
+        isFinish = getIntent().getBooleanExtra("finish", false)
     }
+
+
+    fun rootCommand(command:String):Boolean
+    {
+        var process:Process? = null;
+        var os: DataOutputStream? = null;
+        try
+        {
+            process = Runtime.getRuntime().exec("su");
+            os =  DataOutputStream(process.getOutputStream());
+            os.writeBytes(command + "\n");
+            os.writeBytes("exit\n");
+            os.flush();
+            process.waitFor();
+        } catch ( e:Exception)
+        {
+            Log.d("*** DEBUG ***", "ROOT REE" + e.message);
+            return false;
+        } finally
+        {
+            try
+            {
+                if (os != null)
+                {
+                    os.close();
+                }
+                process?.destroy();
+            } catch ( e:Exception)
+            {
+            }
+        }
+        Log.d("*** DEBUG ***", "Root SUC ");
+        return true;
+    }
+
+
+
 
     private fun initListener() {
         mBtnRecord.setOnClickListener {
-            if (!isRecording) {
-                startRecord()
-            } else {
-                stopRecording()
-            }
+//            if (!isRecording) {
+//                startRecord()
+//            } else {
+//                stopRecording()
+//            }
+            Thread {
+                val pid = android.os.Process.myPid()
+                Log.e("Dirk", "============${pid}===============")
+                for (i in 1..50) {
+                    if(i == 1) {
+                        Log.e("Dirk", "=======b=====${pid}===============")
+                        executeShellCommand("lsof -p $pid | grep socket")
+                    }
+                    val url = URL("http://www.baidu.com")
+                    val connection = url.openConnection()
+                    Log.e("zfc","connection $connection")
+                    val reader = BufferedReader(InputStreamReader(connection.getInputStream()))
+                    val response = reader.readText()
+                    // 打印一下源，目的端口
+                    val httpEngine  = ReflectionUtil.getFieldValue(connection, "httpEngine")
+                    /*
+                    // 打印Connection
+                    val okConnection  = ReflectionUtil.getFieldValue(httpEngine,"connection")
+                     */
+
+                    val okClient = ReflectionUtil.getFieldValue(httpEngine,"client")
+                    val cp = ReflectionUtil.callMethod(okClient,"getConnectionPool")
+//                    Log.e("zfc","sourceSocket: $cp")
+//                    val list = ReflectionUtil.callMethod(cp,"getConnections")
+                    val list = ReflectionUtil.getFieldValue(cp,"connections")
+                    Log.e("zfc","list: ${list.javaClass.name}")
+
+                    if(list is java.util.ArrayDeque<*>) {
+                        Log.e("zfc","okConn: ${list.first?.javaClass?.name}")
+                        list.forEach {okConn->
+                            Log.e("zfc","okConnf: ${okConn?.javaClass?.name}")
+
+                            // 获得sokect对象
+                            val sourceSocket = ReflectionUtil.getFieldValue(okConn,"socket")
+                            if (sourceSocket is Socket) {
+                                Log.e("zfc","sourceSocket: ${sourceSocket.localPort} ${sourceSocket.port}")
+                                val myPort = sourceSocket.localPort
+                                var cmd = "ss -anp | grep '${myPort}'"
+                                val fd = executeShellCommand(cmd,0)
+                                Log.e("zfc","fd: $fd")
+
+                                cmd = "ls -al /proc/$pid/fd/$fd"
+                                val inode = executeShellCommand(cmd,3)
+                                Log.e("zfc","dirk: inode $inode")
+                            }
+
+                        }
+                    }
+
+                    if(i == 1) {
+                        Log.e("Dirk", "=======a=====${pid}===============")
+                        executeShellCommand("lsof -p $pid | grep socket")
+                    }
+                    reader.close()
+                    if(i == 1) {
+                        Log.e("Dirk", "=======c=====${pid}===============")
+                        executeShellCommand("lsof -p $pid | grep socket")
+                    }
+                    Log.e("zfc","repsonse: $response")
+//                println("Response: $response")
+                    Thread.sleep(50)
+                }
+//                Log.e("Dirk", "CurrentPid = $pid")
+//                executeShellCommand("ps")
+
+                // 执行 'lsof -p pid | grep socket' 命令
+                // 注意替换 'pid' 为实际的进程ID
+                Log.e("Dirk", "=======f=====${pid}===============")
+                executeShellCommand("lsof -p $pid | grep socket")
+
+                runOnUiThread {
+                    if (isFinish) {
+                        finish()
+//                        exitProcess(0)
+                        System.exit(0)
+                    }
+                }
+            }.start()
+
         }
 
         mBtnPlay.setOnClickListener {
-            if(outputFile == null) {
-                Toast.makeText(this,"请先录制声音",Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            startPlaying()
+            val pid = android.os.Process.myPid()
+            Log.e("Dirk", "CurrentPid = $pid")
+//            Thread {
+////                val pid = Process.myPid()
+//                executeShellCommand("lsof -p 2374 | grep socket")
+//            }.start()
         }
     }
 
@@ -260,5 +393,11 @@ class MainActivity : AppCompatActivity() {
         } catch (e: IOException) {
             e.printStackTrace()
         }
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.e("dirk","onDestroy~~~~")
     }
 }
